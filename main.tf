@@ -1,53 +1,28 @@
 terraform {
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
+    local  = { source = "hashicorp/local" }
+    random = { source = "hashicorp/random" }
+    null   = { source = "hashicorp/null" }
+    tls    = { source = "hashicorp/tls" }
   }
 }
 
-provider "aws" {
-  region = "us-east-1"
+# Generate unique ID
+resource "random_pet" "name" {}
+
+# Create a file representing a VM
+resource "local_file" "vm" {
+  content  = "VM Name: ${random_pet.name.id}"
+  filename = "vm.txt"
 }
 
-############################
-# EC2 VIRTUAL MACHINE
-############################
-resource "aws_instance" "demo_vm" {
-  ami           = "ami-0c02fb55956c7d316" # Amazon Linux 2
-  instance_type = "t2.micro"
-
-  tags = {
-    Name = "mlops-demo-vm"
-  }
+# Create a file representing a container
+resource "local_file" "container" {
+  content  = "Container running nginx"
+  filename = "container.txt"
 }
 
-############################
-# SIMPLE CONTAINER (ECS TASK)
-############################
-resource "aws_ecs_cluster" "demo_cluster" {
-  name = "mlops-demo-cluster"
-}
-
-resource "aws_ecs_task_definition" "demo_task" {
-  family                   = "mlops-demo-task"
-  network_mode             = "bridge"
-  requires_compatibilities = ["EC2"]
-
-  container_definitions = jsonencode([
-    {
-      name      = "hello-container"
-      image     = "nginx"
-      cpu       = 256
-      memory    = 512
-      essential = true
-      portMappings = [
-        {
-          containerPort = 80
-          hostPort      = 80
-        }
-      ]
-    }
-  ])
+# Logical dependency demo
+resource "null_resource" "setup" {
+  depends_on = [local_file.vm]
 }
